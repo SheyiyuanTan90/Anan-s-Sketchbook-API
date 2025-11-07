@@ -2,12 +2,14 @@
 import keyboard
 import time
 import pyperclip
-from text_fit_draw import draw_text_auto
 import io
 from PIL import Image
 import win32clipboard
 
-DELAY= 0.1
+from config import DELAY, FONT_FILE, BASEIMAGE_FILE, AUTO_SEND_IMAGE, AUTO_PASTE_IMAGE, BLOCK_HOTKEY, HOTKEY, SEND_HOTKEY,PASTE_HOTKEY,CUT_HOTKEY,SELECT_ALL_HOTKEY,TEXT_BOX_TOPLEFT,IMAGE_BOX_BOTTOMRIGHT
+
+from text_fit_draw import draw_text_auto
+from image_fit_paste import paste_image_auto
 
 def copy_png_bytes_to_clipboard(png_bytes: bytes):
     # 打开 PNG 字节为 Image
@@ -36,8 +38,8 @@ def cut_all_and_get_text() -> str:
     pyperclip.copy("")
 
     # 发送 Ctrl+A 和 Ctrl+X
-    keyboard.send('ctrl+a')
-    keyboard.send('ctrl+x')
+    keyboard.send(SELECT_ALL_HOTKEY)
+    keyboard.send(CUT_HOTKEY)
     time.sleep(DELAY)
 
     # 获取剪切后的内容
@@ -45,36 +47,91 @@ def cut_all_and_get_text() -> str:
 
     return new_clip
 
+def try_get_image() -> Image.Image | None:
+    """
+    尝试从剪贴板获取图像，如果没有图像则返回 None。
+    仅支持 Windows。
+    """
+    try:
+        win32clipboard.OpenClipboard()
+        if win32clipboard.IsClipboardFormatAvailable(win32clipboard.CF_DIB):
+            data = win32clipboard.GetClipboardData(win32clipboard.CF_DIB)
+            if data:
+                # 将 DIB 数据转换为字节流，供 Pillow 打开
+                bmp_data = data
+                # DIB 格式缺少 BMP 文件头，需要手动加上
+                # BMP 文件头是 14 字节，包含 "BM" 标识和文件大小信息
+                header = b'BM' + (len(bmp_data) + 14).to_bytes(4, 'little') + b'\x00\x00\x00\x00\x36\x00\x00\x00'
+                image = Image.open(io.BytesIO(header + bmp_data))
+                return image
+    except Exception as e:
+        print("无法从剪贴板获取图像：", e)
+    finally:
+        try:
+            win32clipboard.CloseClipboard()
+        except:
+            pass
+    return None
+
 def Start():
     print("Start generate...")
 
     text=cut_all_and_get_text()
-    if text == "":
-        print("no text")
-        return
-    print("Get text: "+text)
+    image=try_get_image()
 
-    png_bytes = draw_text_auto(
-    image_source="base.png",
-    top_left=(119, 450),
-    bottom_right=(119+279, 450+175),
-    text=text,
-    color=(0, 0, 0),
-    max_font_height=64,        # 例如限制最大字号高度为 64 像素
-    font_path="font.ttf"
-)
+    if text == "" and image is None:
+        print("no text or image")
+        return
+    
+    png_bytes=None
+
+    if image is not None:
+        print("Get image")
+
+        png_bytes = paste_image_auto(
+                    image_source=BASEIMAGE_FILE,
+                    top_left=TEXT_BOX_TOPLEFT,
+                    bottom_right=IMAGE_BOX_BOTTOMRIGHT,
+                    content_image=image,
+                    align="center",
+                    valign="middle",
+                    padding=12,
+                    allow_upscale=True, 
+                    keep_alpha=True,      # 使用内容图 alpha 作为蒙版
+                    )
+    
+    elif text != "":
+        print("Get text: "+text)
+
+        png_bytes = draw_text_auto(
+                    image_source=BASEIMAGE_FILE,
+                    top_left=TEXT_BOX_TOPLEFT,
+                    bottom_right=IMAGE_BOX_BOTTOMRIGHT,
+                    text=text,
+                    color=(0, 0, 0),
+                    max_font_height=64,        # 例如限制最大字号高度为 64 像素
+                    font_path=FONT_FILE,
+                    )
+        
+    if png_bytes is None:
+        print("Generate image failed!")
+        return
+    
     copy_png_bytes_to_clipboard(png_bytes)
     
-    keyboard.send('ctrl+v')
+    if AUTO_PASTE_IMAGE:
+        keyboard.send(PASTE_HOTKEY)
 
-    time.sleep(DELAY)
-    keyboard.send('enter')
+        time.sleep(DELAY)
+
+        if AUTO_SEND_IMAGE:
+            keyboard.send(SEND_HOTKEY)
 
 
     
 
 # 绑定 Ctrl+Alt+H 作为全局热键
-ok=keyboard.add_hotkey('enter', Start, suppress=True)
+ok=keyboard.add_hotkey(HOTKEY, Start, suppress=BLOCK_HOTKEY or HOTKEY==SEND_HOTKEY)
 
 print("Starting...")
 print("Hot key bind: "+str(bool(ok)))
