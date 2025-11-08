@@ -55,8 +55,17 @@ DELAY= 0.1
 # 此值为字符串, 代表相对main的相对路径
 FONT_FILE= "font.ttf"
 
+# 将差分表情导入，默认底图base.png
 # 使用底图的文件名, 需要自己导入
 # 此值为字符串, 代表相对main的相对路径
+BASEIMAGE_MAPPING = {
+    "#普通#": "base.png",
+    "#开心#": "开心.png",
+    "#生气#": "生气.png",
+    "#无语#": "无语.png",
+    "#脸红#": "脸红.png",
+    "#病娇#": "病娇.png"
+}
 BASEIMAGE_FILE= "base.png"
 
 # 文本框左上角坐标 (x, y), 同时适用于图片框
