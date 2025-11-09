@@ -2,32 +2,30 @@ import os
 import io
 from typing import Union, Tuple, Optional, Literal
 from PIL import Image, ImageDraw, ImageFont
-from core.core import config, log
+from core.core import config, internal_config, log  # 导入internal_config
 
 Align = Literal["left", "center", "right"]
 VAlign = Literal["top", "middle", "bottom"]
 
 class SketchbookGenerator:
     def __init__(self):
-        # 从配置中获取基础设置
-        self.base_images_dir = config.get("resource_path").get("images")
-        self.font_file = os.path.join(config.get("work_dir"), config.get("resource_path").get("fonts"), "font.ttf")
+        # 使用内部配置中的绝对路径
+        self.base_images_dir = internal_config.resource_path["images"]
+        self.font_file = internal_config.resource_path["font_file"]
         
         # 从原始config.py中导入的配置
         self.TEXT_BOX_TOPLEFT = (119, 450)
         self.IMAGE_BOX_BOTTOMRIGHT = (119+279, 450+175)
         self.BASE_OVERLAY_FILE = os.path.join(self.base_images_dir, "base_overlay.png")
-        self.USE_BASE_OVERLAY = True
         
-        # 差分表情映射
-        self.BASEIMAGE_MAPPING = {
-            "#普通#": os.path.join(self.base_images_dir, "base.png"),
-            "#开心#": os.path.join(self.base_images_dir, "开心.png"),
-            "#生气#": os.path.join(self.base_images_dir, "生气.png"),
-            "#无语#": os.path.join(self.base_images_dir, "无语.png"),
-            "#脸红#": os.path.join(self.base_images_dir, "脸红.png"),
-            "#病娇#": os.path.join(self.base_images_dir, "病娇.png")
-        }
+        # 从配置中读取启用衣袖遮挡的设置
+        self.USE_BASE_OVERLAY = config.get("image_config.enable_sleeve_overlay", True)
+        
+        # 从配置中获取差分表情映射
+        self.BASEIMAGE_MAPPING = {}
+        emotion_mapping = config.get("emotion_mapping", {})
+        for key, filename in emotion_mapping.items():
+            self.BASEIMAGE_MAPPING[key] = os.path.join(self.base_images_dir, filename)
         
         # 默认底图
         self.current_image_file = os.path.join(self.base_images_dir, "base.png")
@@ -115,8 +113,17 @@ class SketchbookGenerator:
                     lines.append("")
             return lines
     
+        # 获取字体大小限制
+        config_max_font_size = config.get("text_config.max_font_size", 96)
+        config_min_font_size = config.get("text_config.min_font_size", 12)
+        
+        # 确保上限不超过96，下限不低于12
+        max_font_size = min(config_max_font_size, 96)
+        min_font_size = max(config_min_font_size, 12)
+        
         # 寻找最佳字体大小
-        min_size, max_size = 1, max_font_height or 128
+        min_size = min_font_size
+        max_size = max_font_height or max_font_size
         best_size = 1
         best_lines = []
         best_block_h = 0
@@ -315,16 +322,27 @@ class SketchbookGenerator:
     
     def generate_sketchbook(self, text: str = "", image: Optional[Image.Image] = None, emotion: str = "") -> bytes:
         """生成素描本图片"""
+        # 重置为默认普通标签，确保不记忆上一次的差分
+        default_image_file = os.path.join(self.base_images_dir, "base.png")
+        self.current_image_file = default_image_file
+        
         # 检查是否指定了表情差分
         if emotion in self.BASEIMAGE_MAPPING:
             self.current_image_file = self.BASEIMAGE_MAPPING[emotion]
         elif text:
-            # 从文本中查找表情差分指令
-            for keyword, img_file in self.BASEIMAGE_MAPPING.items():
+            # 从文本中查找所有表情差分指令，并使用最后一个
+            found_keywords = []
+            for keyword in self.BASEIMAGE_MAPPING.keys():
                 if keyword in text:
-                    self.current_image_file = img_file
+                    found_keywords.append(keyword)
+                    
+            # 如果找到了表情标签，使用最后一个
+            if found_keywords:
+                last_keyword = found_keywords[-1]
+                self.current_image_file = self.BASEIMAGE_MAPPING[last_keyword]
+                # 从文本中删除所有表情标签
+                for keyword in found_keywords:
                     text = text.replace(keyword, "").strip()
-                    break
     
         png_bytes = None
     

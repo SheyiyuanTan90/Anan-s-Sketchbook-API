@@ -1,11 +1,11 @@
 import uvicorn
 from api.api import anan_sketchbook_app as app
-from core.core import config, log
+from core.core import config, internal_config, log  # 导入internal_config
 
 if __name__ == "__main__":
     # 获取配置信息
-    host = config.get("api.host", "0.0.0.0")
-    port = config.get("api.port", 8000)
+    host = config.get("api_host", "0.0.0.0")
+    port = config.get("api_port", 8000)
     reload = config.get("api.reload", False)
     
     # 记录启动日志
