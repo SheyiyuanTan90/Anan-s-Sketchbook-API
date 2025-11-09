@@ -16,6 +16,8 @@
 - 灵活的配置系统，使用TOML格式
 - 自动获取工作目录，支持相对路径配置
 - 配置文件和日志统一存储在data目录
+- 支持JSON格式请求
+- 专业的API认证机制
 
 ## 项目结构
 
@@ -38,24 +40,60 @@
 
 项目使用TOML格式的配置文件，配置文件位于`data/config.toml`。主要配置项包括：
 
-- `project_name`: 项目名称
-- `work_dir`: 工作目录（自动获取）
-- `log_path`: 日志文件路径（默认：data/log）
-- `output_path`: 输出文件路径
-- `api_route`: API路由前缀
-- `api_port`: API服务端口
-- `api_host`: API服务主机地址
-- `api_token`: API认证令牌（留空表示不启用认证）
-- `domain`: 域名配置
-- `resource_path`: 资源路径配置（图片、字体等）
+### 项目基本信息
+- `project_name`: 项目名称，如 "Anan's Sketchbook API"
 
-所有路径配置均支持相对路径，相对于项目根目录解析。
+### API配置
+- `api_route`: API路由前缀，如 "/api"
+- `api_port`: API服务端口，如 14541
+- `api_host`: API服务主机地址，如 "0.0.0.0"
+- `api_token`: API认证令牌（留空表示不启用认证）
+- `domain`: 域名配置，用于生成回调URL，如 "127.0.0.1"
+
+### 资源路径配置
+```toml
+[resource_path]
+images = "BaseImages"  # 图片资源目录
+font_file = "fonts/font.ttf"  # 字体文件路径
+```
+
+### 表情差分映射配置
+```toml
+[emotion_mapping]
+"#普通#" = "base.png"  # 普通表情
+"#开心#" = "开心.png"  # 开心表情
+"#生气#" = "生气.png"  # 生气表情
+"#无语#" = "无语.png"  # 无语表情
+"#脸红#" = "脸红.png"  # 脸红表情
+"#病娇#" = "病娇.png"  # 病娇表情
+```
+
+### 文本渲染配置
+```toml
+[text_config]
+max_font_size = 96  # 最大字体大小，上限96
+min_font_size = 12  # 最小字体大小，下限12
+```
+
+### 图片渲染配置
+```toml
+[image_config]
+enable_sleeve_overlay = true  # 启用衣袖遮挡
+```
+
+### 文件配置
+```toml
+[file_config]
+temp_file_retention_seconds = 300  # 临时文件保留时间，单位为秒，为0时禁用
+```
+
+所有路径配置均支持相对路径，相对于项目根目录解析。配置系统会自动创建不存在的目录，并确保路径正确解析为绝对路径。
 
 ## 部署指南
 
 ### 环境要求
 
-- Python 3.8+
+- Python 3.10+
 - 依赖项见requirements.txt
 
 ### 安装步骤
@@ -72,24 +110,130 @@ pip install -r requirements.txt
 python main.py
 ```
 
-### Docker部署（可选）
-
-可以通过创建Dockerfile进行容器化部署。
-
 ## API使用
 
-服务启动后，可以通过以下API进行交互：
+服务启动后，可以通过以下API进行交互：所有需要认证的接口都需要在请求头中提供有效的API令牌。
 
-### 文本转素描本图片
+### 认证方式
 
-**请求**: POST /api/v1/draw
+API支持以下两种认证方式（推荐使用Authorization头）：
 
-**参数**:
-- `text`: 要绘制的文本内容
-- `expression` (可选): 表情类型（普通、开心、生气、无语、脸红、病娇）
-- `color` (可选): 文本颜色（RGB格式）
+1. **Authorization头（推荐）**
 
-**返回**: 生成的素描本图片（PNG格式）
+```text
+Authorization: Bearer 你的API令牌
+```
+
+2. **X-API-Token头**
+
+```text
+X-API-Token: 你的API令牌
+```
+
+### 生成文本素描本图片
+
+**请求**: POST /api/generate/text
+
+**请求体（JSON）**:
+```json
+{
+  "text": "要绘制的文本内容，可以包含表情标记（如#开心#、#生气#等）"
+}
+```
+
+**参数说明**:
+- `text`: 要绘制的文本内容，可以包含表情标记（如#开心#、#生气#等，多个标记时只使用最后一个）
+
+**返回**:
+```json
+{
+  "code": 200,
+  "message": "success",
+  "data": {
+    "img_url": "生成的图片URL",
+    "filename": "生成的图片文件名"
+  }
+}
+```
+
+### 上传图片生成素描本图片
+
+**请求**: POST /api/generate/image
+
+**参数**: form-data
+- `image`: 要上传的图片文件
+
+**返回**:
+```json
+{
+  "code": 200,
+  "message": "success",
+  "data": {
+    "img_url": "生成的图片URL",
+    "filename": "生成的图片文件名"
+  }
+}
+```
+
+### 生成Base64格式素描本图片
+
+**请求**: POST /api/generate/base64
+
+**请求体（JSON）**:
+```json
+{
+  "text": "要绘制的文本内容"
+}
+```
+或
+```json
+{
+  "image_base64": "Base64编码的图片"
+}
+```
+
+**参数说明**:
+- `text`: 可选，要绘制的文本内容
+- `image_base64`: 可选，Base64编码的图片内容
+
+**返回**:
+```json
+{
+  "code": 200,
+  "message": "success",
+  "data": {
+    "base64": "生成的Base64图片内容",
+    "filename": "生成的图片文件名"
+  }
+}
+```
+
+### 获取可用表情列表
+
+**请求**: GET /api/emotions
+
+**返回**:
+```json
+{
+  "success": true,
+  "emotions": ["普通", "开心", "生气", "无语", "脸红", "病娇"]
+}
+```
+
+### 获取系统状态
+
+**请求**: GET /api/status
+
+**返回**:
+```json
+{
+  "success": true,
+  "app": "Anan's Sketchbook API",
+  "version": "1.0.0",
+  "status": "running",
+  "timestamp": "当前时间戳"
+}
+```
 
 ### API文档
 
@@ -97,14 +241,6 @@ python main.py
 - Swagger UI: http://[host]:[port]/docs
 
 ## 开发说明
-
-### 配置系统更新
-
-本项目的配置系统已经过优化：
-1. 使用TOML格式替代JSON，提供更清晰的配置结构
-2. 自动获取工作目录，不再需要硬编码绝对路径
-3. 所有配置路径支持相对路径，并自动相对于工作目录解析
-4. 配置文件和日志统一存储在data目录，便于数据管理和备份
 
 ### 表情差分
 
@@ -124,11 +260,12 @@ python main.py
 
 - 字体文件`font.ttf`位于fonts目录，可以替换为其他字体
 - 底图文件位于BaseImages目录，如需更换底图，请确保保持相同的分辨率
-- 生成的图片默认保存在data/sketchbooks目录下
+- 生成的图片默认保存在data/sketchbooks目录下，并会在配置的保留时间后自动删除
+- 如需禁用图片自动删除功能，可将`file_config.temp_file_retention_seconds`设置为0
 
 ## 许可证
 
-本项目仅用于学习和研究目的。
+[MIT License](LICENSE)
 
 ## 更新记录
 
@@ -136,3 +273,6 @@ python main.py
 - 优化路径处理，使用相对路径
 - 统一配置和日志到data目录
 - 重构核心代码结构
+- 优化API认证机制，支持标准Authorization头
+- 添加专业的错误处理机制
+- 优化图片临时文件管理
