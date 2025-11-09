@@ -4,12 +4,9 @@ FROM python:3.10-slim
 # 设置工作目录
 WORKDIR /app
 
-# 更换为阿里云的apt源
-RUN sed -i 's/deb.debian.org/mirrors.aliyun.com/g' /etc/apt/sources.list && \
-    sed -i 's/security.debian.org/mirrors.aliyun.com/g' /etc/apt/sources.list
-
-# 安装系统依赖（包括可能需要的图像处理库依赖）
-RUN apt-get update && apt-get install -y --no-install-recommends \
+# 安装系统依赖（使用阿里云源）
+RUN apt-get update -o Acquire::Base::http::Proxy="" -o Acquire::http::Proxy::mirrors.aliyun.com="DIRECT" && \
+    apt-get install -y --no-install-recommends \
     gcc \
     libc-dev \
     libffi-dev \
