@@ -7,7 +7,7 @@ WORKDIR /app
 ADD . /app
 
 # 安装Python依赖
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir -i https://mirrors.aliyun.com/pypi/simple/ -r requirements.txt
 
 # 设置环境变量
 ENV WORK_DIR=/app
