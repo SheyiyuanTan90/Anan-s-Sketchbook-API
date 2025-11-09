@@ -12,6 +12,11 @@ RUN pip install --no-cache-dir -i https://mirrors.aliyun.com/pypi/simple/ -r req
 # 设置环境变量
 ENV WORK_DIR=/app
 
+RUN mkdir -p /app/data /app/data/log /app/data/sketchbooks
+
+# 添加卷声明，实现数据持久化
+VOLUME /app/data
+
 # 暴露API端口
 EXPOSE 14541
 
