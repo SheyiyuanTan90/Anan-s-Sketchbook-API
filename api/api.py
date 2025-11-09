@@ -303,6 +303,7 @@ def build_full_url(domain, port, path):
     # 检查域名是否已经包含协议和端口
     if not domain.startswith(('http://', 'https://')):
         domain = f"http://{domain}"
+    return f"{domain.rstrip('/')}/{path.lstrip('/')}"
 
 # 改进get_emotions函数的认证
 @anan_sketchbook_app.get(f"{config.get('api_route')}/emotions", tags=["系统信息"])
