@@ -1,5 +1,22 @@
-Pillow>=12.0.0
-keyboard>=0.13.5
-pyperclip>=1.11.0
-pywin32>=311
-psutil
+# Web框架与服务器
+gunicorn>=21.2.0   # WSGI HTTP服务器，用于部署Flask应用
+uvicorn>=0.20.0    # ASGI服务器，用于运行FastAPI应用
+fastapi>=0.100.0   # FastAPI框架，用于构建Web API
+flask>=3.0.0       # Flask框架，用于构建Web应用
+
+# 图像处理
+Pillow>=12.0.0     # 图像处理库，用于图片生成
+
+# 配置管理
+toml>=0.10.2       # 用于读取TOML格式配置文件
+
+# 以下是FastAPI的核心依赖项
+starlette>=0.27.0  # FastAPI的基础库，提供异步支持
+pydantic>=2.0.0    # 数据验证库，FastAPI的核心依赖
+annotated-types>=0.4.0  # Pydantic的依赖
+anyio>=4.0.0       # 异步I/O库，FastAPI使用
+python-multipart>=0.0.6  # 用于处理表单数据的库
+
+# Uvicorn的依赖
+h11>=0.14.0        # HTTP/1.1协议实现
+click==8.1.8       # 命令行接口工具，Uvicorn使用
