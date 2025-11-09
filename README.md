@@ -33,6 +33,7 @@
 ├── fonts/            # 字体文件目录
 ├── utils/            # 工具函数模块
 ├── main.py           # 应用入口文件
+├── Dockerfile        # Docker构建文件
 └── requirements.txt  # 项目依赖
 ```
 
@@ -98,16 +99,54 @@ temp_file_retention_seconds = 300  # 临时文件保留时间，单位为秒，�
 
 ### 安装步骤
 
-1. 克隆项目代码
-
-2. 安装依赖：
 ```bash
+# 克隆项目代码
+
+# 安装依赖
 pip install -r requirements.txt
+
+# 运行服务
+python main.py
 ```
 
-3. 运行服务：
+### Docker部署
+
+项目已提供Docker支持，可通过以下步骤快速部署：
+
+1. **构建Docker镜像**
+
 ```bash
-python main.py
+docker build -t anan-sketchbook-api .
+```
+
+2. **运行Docker容器**
+
+```bash
+docker run -p 8000:8000 -v $(pwd)/data:/app/data anan-sketchbook-api
+```
+
+3. **Docker参数说明**
+   - `-p 8000:8000`: 映射容器的8000端口到主机的8000端口（第一个8000是主机端口，可根据需要修改）
+   - `-v $(pwd)/data:/app/data`: 挂载主机的data目录到容器中，实现数据持久化（配置、日志、生成的图片等）
+
+4. **自定义配置**
+   - 在运行容器前，可先创建data目录并放置自定义的`config.toml`文件
+   - 或者在容器启动后，通过修改挂载的data目录中的配置文件进行配置
+
+5. **查看日志**
+   - 容器日志：`docker logs [容器ID]`
+   - 应用日志：在挂载的data/log目录下查看app.log文件
+
+6. **停止容器**
+
+```bash
+docker stop [容器ID]
+```
+
+7. **重启容器**
+
+```bash
+docker restart [容器ID]
 ```
 
 ## API使用
@@ -276,3 +315,4 @@ X-API-Token: 你的API令牌
 - 优化API认证机制，支持标准Authorization头
 - 添加专业的错误处理机制
 - 优化图片临时文件管理
+- 添加Docker支持
