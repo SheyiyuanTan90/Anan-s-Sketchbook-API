@@ -4,6 +4,10 @@ FROM python:3.10-slim
 # 设置工作目录
 WORKDIR /app
 
+# 更换为阿里云的apt源
+RUN sed -i 's/deb.debian.org/mirrors.aliyun.com/g' /etc/apt/sources.list && \
+    sed -i 's/security.debian.org/mirrors.aliyun.com/g' /etc/apt/sources.list
+
 # 安装系统依赖（包括可能需要的图像处理库依赖）
 RUN apt-get update && apt-get install -y --no-install-recommends \
     gcc \
@@ -16,8 +20,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # 复制requirements.txt文件
 COPY requirements.txt .
 
-# 安装Python依赖
-RUN pip install --no-cache-dir -r requirements.txt
+# 更换为阿里云的pip源并安装Python依赖
+RUN pip install --no-cache-dir -i https://mirrors.aliyun.com/pypi/simple/ -r requirements.txt
 
 # 复制项目文件
 COPY . .
