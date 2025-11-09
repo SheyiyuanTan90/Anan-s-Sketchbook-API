@@ -12,7 +12,6 @@ import uuid
 from datetime import datetime
 import threading
 import time
-import re
 from pydantic import BaseModel, Field
 
 from core.core import config, internal_config, log  # 导入internal_config
@@ -31,7 +30,7 @@ sketchbook_gen = SketchbookGenerator()
 # 设置图片目录和域名配置
 IMAGE_FOLDER = os.path.join(internal_config.work_dir, "data", "sketchbooks")
 DOMAIN = config.get("domain", "localhost")
-PORT = config.get("api_port", 8000)
+PORT = config.get("api_port", 14541)
 
 # 确保图片目录存在
 os.makedirs(IMAGE_FOLDER, exist_ok=True)
@@ -304,14 +303,6 @@ def build_full_url(domain, port, path):
     # 检查域名是否已经包含协议和端口
     if not domain.startswith(('http://', 'https://')):
         domain = f"http://{domain}"
-    
-    # 检查域名是否已经包含端口
-    if re.search(r':\d+$', domain.split('//')[1].split('/')[0]):
-        # 域名已包含端口，直接使用
-        return f"{domain.rstrip('/')}/{path.lstrip('/')}"
-    else:
-        # 域名不包含端口，添加配置的端口
-        return f"{domain.rstrip('/')}:{port}/{path.lstrip('/')}"
 
 # 改进get_emotions函数的认证
 @anan_sketchbook_app.get(f"{config.get('api_route')}/emotions", tags=["系统信息"])
